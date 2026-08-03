@@ -22,7 +22,7 @@
 
 1. 执行 **Codespaces: Rebuild Container**，使 Docker-in-Docker 生效。
 2. 从 `.env.codespaces.example` 创建被忽略的 `.env.codespaces`，只在 Codespaces Secrets 或该本地文件中提供数据库、Nacos、JWT 和内部服务密钥。
-3. 运行 `bash scripts/start-codespaces-stack.sh`。首次运行只向空 Docker 数据卷导入跟踪的 SQL，并由 `care-service` 执行 Flyway；不会删除或重置已有卷。
+3. 运行 `bash scripts/start-codespaces-stack.sh`。首次运行只向空 Docker 数据卷导入跟踪的 SQL，并由 `care-service` 执行 Flyway；脚本会等待 MySQL 根密码认证查询成功后再导入，避免容器首次初始化时过早执行 SQL；不会删除或重置已有卷。
 4. 在 Ports 面板打开 `5173`，并用 `docker compose --env-file .env.codespaces -f docker-compose.codespaces.yml logs -f` 查看日志。
 
 不要与 `scripts/codespaces/infra-up.sh` 和 `scripts/codespaces/start-services.sh` 同时使用；两条入口会争用同一 Codespace 的服务端口和数据库资源。

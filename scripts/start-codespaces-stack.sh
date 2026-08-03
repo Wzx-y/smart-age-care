@@ -30,7 +30,8 @@ done
 
 wait_for_mysql() {
   for _ in {1..60}; do
-    if "${compose[@]}" exec -T mysql mysqladmin ping -h localhost -uroot -p"$MYSQL_ROOT_PASSWORD" --silent >/dev/null 2>&1; then
+    # mysqladmin ping succeeds even while MySQL is still applying its initial root password.
+    if "${compose[@]}" exec -T mysql mysql -N -s -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2

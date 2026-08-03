@@ -37,7 +37,7 @@ AI 测试使用固定模拟响应，不调用真实模型或付费密钥。PR �
 
 `care-service` 与 RuoYi Cloud 均已有 Maven 测试源码，GitHub CI 分别执行 `backend/pom.xml` 和 `backend/ruoyi-cloud/pom.xml` 的 Java 21 `mvn verify` 作业；尚未在云端执行。TypeScript、后端集成和 Playwright 测试套件仍未完成，不得把该状态描述为已通过。
 
-`tests/integration/codespaces-stack.test.mjs` 对全容器化 Codespaces 编排做静态检查：必须包含 MySQL、Redis、Nacos、RuoYi Auth/System/Gateway、`care-service` 与前端服务；密钥只允许来自被忽略的 `.env.codespaces`；浏览器请求通过 `/gateway` 代理。该测试不替代 Codespaces 实际启动、登录或端到端证据。
+`tests/integration/codespaces-stack.test.mjs` 对全容器化 Codespaces 编排做静态检查：必须包含 MySQL、Redis、Nacos、RuoYi Auth/System/Gateway、`care-service` 与前端服务；密钥只允许来自被忽略的 `.env.codespaces`；启动脚本必须以已认证的 MySQL 查询作为初始化门槛，不能只依赖 `mysqladmin ping`；浏览器请求通过 `/gateway` 代理。该测试不替代 Codespaces 实际启动、登录或端到端证据。
 
 `care-service` 的单元测试直接声明 `mockito-core` 测试依赖，确保 GitHub Actions 的测试编译类路径包含测试替身 API；该依赖由 Spring Boot BOM 管理版本。
 

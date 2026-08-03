@@ -31,3 +31,10 @@ test("Codespaces 容器提供 Docker，并让 Vite 代理 Gateway 请求", async
   assert.match(viteConfig, /VITE_GATEWAY_PROXY_TARGET/);
   assert.match(viteConfig, /"\/gateway"/);
 });
+
+test("Codespaces 启动脚本等待 MySQL 根密码认证完成后再导入 SQL", async () => {
+  const script = await readProjectFile("scripts/start-codespaces-stack.sh");
+
+  assert.match(script, /mysql -N -s -uroot -p"\$MYSQL_ROOT_PASSWORD" -e "SELECT 1"/);
+  assert.doesNotMatch(script, /mysqladmin ping/);
+});
