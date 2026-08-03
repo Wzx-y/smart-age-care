@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: device-service
+
+server:
+  port: ${DEVICE_SERVICE_PORT:8082}
+
+care:
+  iot:
+    mqtt-broker-url: ${MQTT_BROKER_URL}

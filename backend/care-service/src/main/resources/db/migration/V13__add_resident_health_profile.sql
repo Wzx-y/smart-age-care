@@ -1,0 +1,20 @@
+create table care_resident_health_profile (
+    resident_id bigint primary key,
+    tenant_id bigint not null,
+    blood_type varchar(8),
+    allergy_summary varchar(1024),
+    chronic_conditions varchar(2048),
+    medication_notes varchar(2048),
+    care_level varchar(32),
+    mobility_status varchar(64),
+    cognition_status varchar(64),
+    nutrition_risk varchar(32),
+    fall_risk varchar(32),
+    pressure_injury_risk varchar(32),
+    infection_risk varchar(32),
+    care_notes varchar(2048),
+    updated_by bigint not null,
+    created_at datetime(3) not null,
+    updated_at datetime(3) not null,
+    key idx_care_resident_health_tenant (tenant_id, resident_id)
+);

@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: care-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:}
+  datasource:
+    url: ${CARE_DB_URL}
+    username: ${CARE_DB_USERNAME}
+    password: ${CARE_DB_PASSWORD}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${CARE_SERVICE_PORT:8081}
+
+platform:
+  member-directory-url: ${RUOYI_MEMBER_DIRECTORY_URL:}
+  internal-auth-key: ${PLATFORM_INTERNAL_AUTH_KEY:}
+
+attachments:
+  storage:
+    base-url: ${CARE_ATTACHMENT_STORAGE_BASE_URL:}
+    bucket: ${CARE_ATTACHMENT_STORAGE_BUCKET:}
+    service-key: ${CARE_ATTACHMENT_STORAGE_SERVICE_KEY:}
+
+admission:
+  reservation:
+    timeout-minutes: ${ADMISSION_RESERVATION_TIMEOUT_MINUTES:30}
+    expiry-scan-ms: ${ADMISSION_RESERVATION_EXPIRY_SCAN_MS:60000}
+
+exports:
+  generation-scan-ms: ${EXPORT_GENERATION_SCAN_MS:5000}
+  download-ttl-hours: ${EXPORT_DOWNLOAD_TTL_HOURS:24}
+  storage:
+    base-url: ${CARE_EXPORT_STORAGE_BASE_URL:}
+    bucket: ${CARE_EXPORT_STORAGE_BUCKET:}
+    service-key: ${CARE_EXPORT_STORAGE_SERVICE_KEY:}
+
+notifications:
+  overdue-scan-ms: ${NOTIFICATION_OVERDUE_SCAN_MS:60000}
+
+audit:
+  retention-days: ${AUDIT_RETENTION_DAYS:2555}
+  retention-scan-ms: ${AUDIT_RETENTION_SCAN_MS:86400000}

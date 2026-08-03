@@ -1,0 +1,32 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: vars.ENABLE_VERCEL_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npm run build
+      - run: npx --yes vercel@40.2.0 pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+      - run: npx --yes vercel@40.2.0 build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+      - id: deploy
+        run: echo "url=$(npx --yes vercel@40.2.0 deploy --prebuilt --prod --token=\"${{ secrets.VERCEL_TOKEN }}\")" >> "$GITHUB_OUTPUT"
+      - name: Production health check
+        run: |
+          target="${{ vars.PRODUCTION_HEALTHCHECK_URL || steps.deploy.outputs.url }}"
+          if ! curl --fail --retry 3 --retry-delay 10 "$target"; then
+            echo "Health check failed. Roll back to the previous verified Vercel deployment and inspect the deployment trace."
+            exit 1
+          fi

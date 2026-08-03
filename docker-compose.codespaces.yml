@@ -1,0 +1,140 @@
+name: smart-age-care-codespaces
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.codespaces}
+      MYSQL_DATABASE: smart_age_care
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - codespaces_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  nacos:
+    image: nacos/nacos-server:v3.0.2
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: ry-config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.codespaces}
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN_SECRET:?Set NACOS_AUTH_TOKEN_SECRET in .env.codespaces}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_SERVER_IDENTITY_KEY:?Set NACOS_SERVER_IDENTITY_KEY in .env.codespaces}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_SERVER_IDENTITY_VALUE:?Set NACOS_SERVER_IDENTITY_VALUE in .env.codespaces}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8848/nacos/v1/console/health/readiness >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ruoyi-auth:
+    image: eclipse-temurin:21-jre
+    command: ["java", "-jar", "/app/app.jar"]
+    environment: &ruoyi_environment
+      NACOS_SERVER_ADDR: nacos:8848
+      NACOS_USERNAME: ${NACOS_USERNAME:?Set NACOS_USERNAME in .env.codespaces}
+      NACOS_PASSWORD: ${NACOS_PASSWORD:?Set NACOS_PASSWORD in .env.codespaces}
+      TOKEN_SECRET: ${RUOYI_JWT_SECRET:?Set RUOYI_JWT_SECRET in .env.codespaces}
+      PLATFORM_INTERNAL_AUTH_KEY: ${PLATFORM_INTERNAL_AUTH_KEY:?Set PLATFORM_INTERNAL_AUTH_KEY in .env.codespaces}
+    volumes:
+      - ./.codespaces/runtime/ruoyi-auth.jar:/app/app.jar:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ruoyi-system:
+    image: eclipse-temurin:21-jre
+    command: ["java", "-jar", "/app/app.jar"]
+    environment: *ruoyi_environment
+    volumes:
+      - ./.codespaces/runtime/ruoyi-system.jar:/app/app.jar:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ruoyi-gateway:
+    image: eclipse-temurin:21-jre
+    command: ["java", "-jar", "/app/app.jar"]
+    environment:
+      <<: *ruoyi_environment
+      PLATFORM_MEMBER_DIRECTORY_URL: http://ruoyi-system:9201
+    volumes:
+      - ./.codespaces/runtime/ruoyi-gateway.jar:/app/app.jar:ro
+    depends_on:
+      ruoyi-auth:
+        condition: service_started
+      ruoyi-system:
+        condition: service_started
+    expose:
+      - "8080"
+
+  care-service:
+    image: eclipse-temurin:21-jre
+    command: ["java", "-jar", "/app/app.jar"]
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      NACOS_USERNAME: ${NACOS_USERNAME:?Set NACOS_USERNAME in .env.codespaces}
+      NACOS_PASSWORD: ${NACOS_PASSWORD:?Set NACOS_PASSWORD in .env.codespaces}
+      CARE_DB_URL: jdbc:mysql://mysql:3306/smart_age_care?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+      CARE_DB_USERNAME: care_service
+      CARE_DB_PASSWORD: ${CARE_DB_PASSWORD:?Set CARE_DB_PASSWORD in .env.codespaces}
+      RUOYI_MEMBER_DIRECTORY_URL: http://ruoyi-system:9201
+      PLATFORM_INTERNAL_AUTH_KEY: ${PLATFORM_INTERNAL_AUTH_KEY:?Set PLATFORM_INTERNAL_AUTH_KEY in .env.codespaces}
+    volumes:
+      - ./.codespaces/runtime/care-service.jar:/app/app.jar:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      ruoyi-system:
+        condition: service_started
+    expose:
+      - "8081"
+
+  frontend:
+    image: node:22.16-bookworm
+    working_dir: /workspace
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_AUTH_MODE: gateway
+      VITE_RUOYI_GATEWAY_URL: /gateway
+      VITE_GATEWAY_PROXY_TARGET: http://ruoyi-gateway:8080
+    volumes:
+      - ./:/workspace
+      - codespaces_frontend_node_modules:/workspace/node_modules
+    depends_on:
+      ruoyi-gateway:
+        condition: service_started
+      care-service:
+        condition: service_started
+    ports:
+      - "5173:5173"
+
+volumes:
+  codespaces_mysql_data:
+  codespaces_frontend_node_modules:
