@@ -16,6 +16,7 @@ test("Codespaces 全栈编排只从未提交的环境文件读取密钥", async 
   }
   assert.match(compose, /\$\{MYSQL_ROOT_PASSWORD:\?/);
   assert.match(compose, /\$\{PLATFORM_INTERNAL_AUTH_KEY:\?/);
+  assert.match(compose, /MYSQL_SERVICE_DB_PARAM:.*allowPublicKeyRetrieval=true/);
   assert.match(gitignore, /^\.env\.codespaces$/m);
   assert.equal(sample.includes("MYSQL_ROOT_PASSWORD=\n"), true);
   assert.equal(sample.includes("PLATFORM_INTERNAL_AUTH_KEY=\n"), true);
