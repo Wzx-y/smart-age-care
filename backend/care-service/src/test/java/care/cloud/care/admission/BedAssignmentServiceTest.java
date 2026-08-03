@@ -44,7 +44,7 @@ class BedAssignmentServiceTest {
         when(admissionRepository.findByIdAndTenantId(3L, 100L)).thenReturn(Optional.of(admission));
         when(bedRepository.findByIdAndTenantId(7L, 100L)).thenReturn(Optional.of(bed));
         when(bedRepository.reserve(bed)).thenReturn(true);
-        when(admissionRepository.assignBed(org.mockito.eq(admission), org.mockito.eq(7L), org.mockito.any(), org.mockito.eq(801L))).thenReturn(true);
+        when(admissionRepository.assignBed(org.mockito.ArgumentMatchers.eq(admission), org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(801L))).thenReturn(true);
 
         Admission assigned = service.assign(3L, new AssignBedRequest(7L, 3L, 5L));
 
@@ -53,7 +53,7 @@ class BedAssignmentServiceTest {
         assertNotNull(assigned.reservedUntil());
         assertEquals(4L, assigned.version());
         verify(bedRepository).reserve(bed);
-        verify(admissionRepository).assignBed(org.mockito.eq(admission), org.mockito.eq(7L), org.mockito.any(), org.mockito.eq(801L));
+        verify(admissionRepository).assignBed(org.mockito.ArgumentMatchers.eq(admission), org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(801L));
     }
 
     @Test
@@ -101,14 +101,14 @@ class BedAssignmentServiceTest {
         when(admissionRepository.findByIdAndTenantId(3L, 100L)).thenReturn(Optional.of(admission));
         when(bedRepository.findByIdAndTenantId(7L, 100L)).thenReturn(Optional.of(bed));
         when(bedRepository.reserve(bed)).thenReturn(true);
-        when(admissionRepository.assignBed(org.mockito.eq(admission), org.mockito.eq(7L), org.mockito.any(), org.mockito.eq(801L))).thenReturn(false);
+        when(admissionRepository.assignBed(org.mockito.ArgumentMatchers.eq(admission), org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(801L))).thenReturn(false);
 
         Method assign = BedAssignmentService.class.getMethod("assign", Long.class, AssignBedRequest.class);
         assertNotNull(assign.getAnnotation(Transactional.class));
         assertThrows(AdmissionVersionConflictException.class, () -> service.assign(3L, new AssignBedRequest(7L, 3L, 5L)));
 
         verify(bedRepository).reserve(bed);
-        verify(admissionRepository).assignBed(org.mockito.eq(admission), org.mockito.eq(7L), org.mockito.any(), org.mockito.eq(801L));
+        verify(admissionRepository).assignBed(org.mockito.ArgumentMatchers.eq(admission), org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(801L));
     }
 
     private Admission pendingAdmission(long version) {

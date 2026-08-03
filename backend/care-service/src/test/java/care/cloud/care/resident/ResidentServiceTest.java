@@ -55,11 +55,11 @@ class ResidentServiceTest {
     void archivesOnlyResidentsWhoseCareHasAlreadyClosed() {
         Resident discharged = resident(ResidentStatus.DISCHARGED);
         when(residentRepository.findByIdAndTenantId(11L, 100L)).thenReturn(Optional.of(discharged));
-        when(residentRepository.archive(org.mockito.eq(11L), org.mockito.eq(100L), org.mockito.any())).thenReturn(true);
+        when(residentRepository.archive(org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.any())).thenReturn(true);
 
         residentService.archive(11L);
 
-        verify(residentRepository).archive(org.mockito.eq(11L), org.mockito.eq(100L), org.mockito.any());
+        verify(residentRepository).archive(org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -68,7 +68,7 @@ class ResidentServiceTest {
 
         assertThrows(ResidentArchiveConflictException.class, () -> residentService.archive(11L));
 
-        verify(residentRepository, never()).archive(org.mockito.any(), org.mockito.any(), org.mockito.any());
+        verify(residentRepository, never()).archive(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -124,7 +124,7 @@ class ResidentServiceTest {
 
         assertThrows(ResidentProfileConflictException.class, () -> residentService.deleteAssessment(11L, 31L, 2L));
 
-        verify(residentProfileRepository, never()).deleteAssessment(org.mockito.any(), org.mockito.any(), org.mockito.any(), org.mockito.anyLong());
+        verify(residentProfileRepository, never()).deleteAssessment(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -132,13 +132,13 @@ class ResidentServiceTest {
         Resident resident = resident(ResidentStatus.IN_RESIDENCE);
         CreateResidentAttachmentRequest request = new CreateResidentAttachmentRequest("王秀兰病历.pdf", "application/pdf", 1024L);
         when(residentRepository.findByIdAndTenantId(11L, 100L)).thenReturn(Optional.of(resident));
-        when(residentProfileRepository.saveAttachment(org.mockito.eq(100L), org.mockito.eq(11L), org.mockito.eq(801L), org.mockito.eq(request), org.mockito.any()))
+        when(residentProfileRepository.saveAttachment(org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(801L), org.mockito.ArgumentMatchers.eq(request), org.mockito.ArgumentMatchers.any()))
                 .thenAnswer(invocation -> attachment((String) invocation.getArgument(4), "PENDING_UPLOAD", null));
 
         ResidentAttachment attachment = residentService.prepareAttachment(11L, request);
 
         assertEquals(false, attachment.storageKey().contains(request.fileName()));
-        verify(residentProfileRepository).saveAttachment(org.mockito.eq(100L), org.mockito.eq(11L), org.mockito.eq(801L), org.mockito.eq(request), org.mockito.any());
+        verify(residentProfileRepository).saveAttachment(org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.eq(11L), org.mockito.ArgumentMatchers.eq(801L), org.mockito.ArgumentMatchers.eq(request), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -163,8 +163,8 @@ class ResidentServiceTest {
 
         assertThrows(ResidentNotFoundException.class, () -> residentService.createAttachmentUploadTarget(11L, 41L));
 
-        verify(residentProfileRepository, never()).findAttachmentById(org.mockito.any(), org.mockito.any(), org.mockito.any());
-        verify(residentAttachmentStorage, never()).signUpload(org.mockito.any(), org.mockito.any());
+        verify(residentProfileRepository, never()).findAttachmentById(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(residentAttachmentStorage, never()).signUpload(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -195,7 +195,7 @@ class ResidentServiceTest {
 
         assertThrows(ResidentAttachmentUploadConflictException.class, () -> residentService.completeAttachmentUpload(11L, 41L));
 
-        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.any(), org.mockito.any(), org.mockito.any());
+        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -208,8 +208,8 @@ class ResidentServiceTest {
         ResidentAttachment result = residentService.completeAttachmentUpload(11L, 41L);
 
         assertEquals(uploaded, result);
-        verify(residentAttachmentStorage, never()).inspect(org.mockito.any());
-        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.any(), org.mockito.any(), org.mockito.any());
+        verify(residentAttachmentStorage, never()).inspect(org.mockito.ArgumentMatchers.any());
+        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -222,7 +222,7 @@ class ResidentServiceTest {
 
         assertThrows(ResidentAttachmentStorageUnavailableException.class, () -> residentService.completeAttachmentUpload(11L, 41L));
 
-        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.any(), org.mockito.any(), org.mockito.any());
+        verify(residentProfileRepository, never()).markAttachmentUploaded(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     private ResidentAttachment attachment(String storageKey, String uploadStatus, OffsetDateTime uploadedAt) {
