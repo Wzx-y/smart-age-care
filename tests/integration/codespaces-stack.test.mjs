@@ -37,4 +37,9 @@ test("Codespaces 启动脚本等待 MySQL 根密码认证完成后再导入 SQL"
 
   assert.match(script, /mysql -N -s -uroot -p"\$MYSQL_ROOT_PASSWORD" -e "SELECT 1"/);
   assert.doesNotMatch(script, /mysqladmin ping/);
+  assert.match(script, /CREATE DATABASE IF NOT EXISTS `ry-cloud`/);
+  assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" ry-cloud < /);
+  assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" smart_age_care < /);
+  assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" ry-config < /);
+  assert.match(script, /TABLE_SCHEMA = 'smart_age_care' AND TABLE_NAME = 'care_tenant_directory'/);
 });

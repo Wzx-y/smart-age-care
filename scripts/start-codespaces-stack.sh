@@ -40,19 +40,20 @@ wait_for_mysql() {
 }
 
 seed_databases() {
-  local database_exists
-  database_exists="$("${compose[@]}" exec -T mysql mysql -N -s -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'ry-config'" 2>/dev/null || true)"
-  if [[ "$database_exists" == "ry-config" ]]; then
+  local seed_complete
+  seed_complete="$("${compose[@]}" exec -T mysql mysql -N -s -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'smart_age_care' AND TABLE_NAME = 'care_tenant_directory'" 2>/dev/null || true)"
+  if [[ "$seed_complete" == "1" ]]; then
     return
   fi
 
   printf 'Initializing isolated Codespaces databases from repository SQL...\n'
   "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < "$workspace_root/backend/ruoyi-cloud/sql/ry_config_20260611.sql"
-  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < "$workspace_root/backend/ruoyi-cloud/sql/ry_20260417.sql"
-  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/001_tenant_member_directory.sql"
-  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/002_gateway_care_route.sql"
-  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/003_tenant_directory.sql"
-  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS smart_age_care CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'care_service'@'%' IDENTIFIED BY '$CARE_DB_PASSWORD'; ALTER USER 'care_service'@'%' IDENTIFIED BY '$CARE_DB_PASSWORD'; GRANT ALL PRIVILEGES ON smart_age_care.* TO 'care_service'@'%'; FLUSH PRIVILEGES; UPDATE \`ry-config\`.config_info SET content = REPLACE(REPLACE(REPLACE(content, 'host: localhost', 'host: redis'), 'jdbc:mysql://localhost', 'jdbc:mysql://mysql'), 'password: password', 'password: $MYSQL_ROOT_PASSWORD') WHERE data_id IN ('ruoyi-gateway-dev.yml', 'ruoyi-auth-dev.yml', 'ruoyi-system-dev.yml');"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS \`ry-cloud\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS smart_age_care CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ry-cloud < "$workspace_root/backend/ruoyi-cloud/sql/ry_20260417.sql"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" smart_age_care < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/001_tenant_member_directory.sql"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ry-config < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/002_gateway_care_route.sql"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" smart_age_care < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/003_tenant_directory.sql"
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS 'care_service'@'%' IDENTIFIED BY '$CARE_DB_PASSWORD'; ALTER USER 'care_service'@'%' IDENTIFIED BY '$CARE_DB_PASSWORD'; GRANT ALL PRIVILEGES ON smart_age_care.* TO 'care_service'@'%'; FLUSH PRIVILEGES; UPDATE \`ry-config\`.config_info SET content = REPLACE(REPLACE(REPLACE(content, 'host: localhost', 'host: redis'), 'jdbc:mysql://localhost', 'jdbc:mysql://mysql'), 'password: password', 'password: $MYSQL_ROOT_PASSWORD') WHERE data_id IN ('ruoyi-gateway-dev.yml', 'ruoyi-auth-dev.yml', 'ruoyi-system-dev.yml');"
 }
 
 stage_jar() {
