@@ -39,7 +39,7 @@ AI 测试使用固定模拟响应，不调用真实模型或付费密钥。PR �
 
 `tests/integration/codespaces-stack.test.mjs` 对全容器化 Codespaces 编排做静态检查：必须包含 MySQL、Redis、Nacos、RuoYi Auth/System/Gateway、`care-service` 与前端服务；密钥只允许来自被忽略的 `.env.codespaces`；启动脚本必须以已认证的 MySQL 查询作为初始化门槛，不能只依赖 `mysqladmin ping`，并将 RuoYi、护理和 Gateway SQL 导入明确指定到各自数据库；Gateway 路由记录的值数量必须与当前 Nacos `config_info` 字段清单对应；浏览器请求通过 `/gateway` 代理。该测试不替代 Codespaces 实际启动、登录或端到端证据。
 
-`care-service` 的单元测试直接声明 `mockito-core` 测试依赖，确保 GitHub Actions 的测试编译类路径包含测试替身 API；该依赖由 Spring Boot BOM 管理版本。
+`care-service` 的单元测试直接声明 `mockito-core` 测试依赖，确保 GitHub Actions 的测试编译类路径包含测试替身 API；Mockito 参数匹配器使用 `org.mockito.ArgumentMatchers` 的静态导入，避免将包名误作为可调用类型；该依赖由 Spring Boot BOM 管理版本。
 
 Codespaces 启动基线现由 `infra/codespaces/compose.yaml` 与 `scripts/codespaces/` 提供。Playwright 依赖尚未进入锁文件，必须在 Codespaces 完成依赖锁更新、浏览器安装和真实 Gateway 用例后，才可以替换 CI 的 E2E 就绪标记；在此之前该标记不是测试通过证据。
 

@@ -2,6 +2,7 @@ package care.cloud.care.admission;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,7 +28,7 @@ class AdmissionReservationExpiryServiceTest {
     void releasesExpiredReservationAndReturnsAdmissionToPendingAssignment() throws NoSuchMethodException {
         Admission admission = expiredAdmission();
         Bed bed = new Bed(7L, 100L, 2L, "A-205-02", BedOccupancyStatus.RESERVED, BedHygieneStatus.READY, 6L);
-        when(admissions.findExpiredReservations(org.mockito.any())).thenReturn(List.of(admission));
+        when(admissions.findExpiredReservations(any())).thenReturn(List.of(admission));
         when(beds.findByIdAndTenantId(7L, 100L)).thenReturn(Optional.of(bed));
         when(beds.releaseReservation(bed)).thenReturn(true);
         when(admissions.releaseExpiredReservation(admission, 0L)).thenReturn(true);
@@ -46,14 +47,14 @@ class AdmissionReservationExpiryServiceTest {
     void doesNotResetAdmissionWhenReservedBedCannotBeReleased() {
         Admission admission = expiredAdmission();
         Bed bed = new Bed(7L, 100L, 2L, "A-205-02", BedOccupancyStatus.OCCUPIED, BedHygieneStatus.READY, 6L);
-        when(admissions.findExpiredReservations(org.mockito.any())).thenReturn(List.of(admission));
+        when(admissions.findExpiredReservations(any())).thenReturn(List.of(admission));
         when(beds.findByIdAndTenantId(7L, 100L)).thenReturn(Optional.of(bed));
         when(beds.releaseReservation(bed)).thenReturn(false);
 
         assertEquals(0, service.releaseExpiredReservations());
 
-        verify(admissions, never()).releaseExpiredReservation(org.mockito.any(), org.mockito.any());
-        verify(audit, never()).recordReservationExpired(org.mockito.any(), org.mockito.any(), org.mockito.any(), org.mockito.any());
+        verify(admissions, never()).releaseExpiredReservation(any(), any());
+        verify(audit, never()).recordReservationExpired(any(), any(), any(), any());
     }
 
     private Admission expiredAdmission() {
