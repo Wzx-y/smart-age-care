@@ -13,7 +13,7 @@ insert into config_info (
         'spring.cloud.gateway.server.webflux.routes[5].uri=lb://care-service\n'
         'spring.cloud.gateway.server.webflux.routes[5].predicates[0]=Path=/care/**\n'
         'spring.cloud.gateway.server.webflux.routes[5].filters[0]=StripPrefix=1\n'),
-    current_timestamp, current_timestamp, 'smart-age-care', '0:0:0:0:0:0:0:1', '', '', '',
+    current_timestamp, current_timestamp, 'smart-age-care', '0:0:0:0:0:0:0:1', '', '', '', '', '',
     'properties', '', ''
 )
 on duplicate key update

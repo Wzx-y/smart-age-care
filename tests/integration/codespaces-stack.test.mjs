@@ -33,7 +33,10 @@ test("Codespaces 容器提供 Docker，并让 Vite 代理 Gateway 请求", async
 });
 
 test("Codespaces 启动脚本等待 MySQL 根密码认证完成后再导入 SQL", async () => {
-  const script = await readProjectFile("scripts/start-codespaces-stack.sh");
+  const [script, gatewayRouteSql] = await Promise.all([
+    readProjectFile("scripts/start-codespaces-stack.sh"),
+    readProjectFile("backend/ruoyi-cloud/sql/smart-age-care/002_gateway_care_route.sql"),
+  ]);
 
   assert.match(script, /mysql -N -s -uroot -p"\$MYSQL_ROOT_PASSWORD" -e "SELECT 1"/);
   assert.doesNotMatch(script, /mysqladmin ping/);
@@ -42,4 +45,5 @@ test("Codespaces 启动脚本等待 MySQL 根密码认证完成后再导入 SQL"
   assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" smart_age_care < /);
   assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" ry-config < /);
   assert.match(script, /TABLE_SCHEMA = 'smart_age_care' AND TABLE_NAME = 'care_tenant_directory'/);
+  assert.match(gatewayRouteSql, /'', '', '', '', '',\s+'properties', '', ''/);
 });
