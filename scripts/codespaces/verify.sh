@@ -8,7 +8,9 @@ check() {
   echo "Healthy: ${name}"
 }
 
-check nacos http://127.0.0.1:8848/nacos/actuator/health
+docker compose -f infra/codespaces/compose.yaml exec -T ruoyi-nacos \
+  curl --fail --silent --show-error http://localhost:8080/v3/console/health/readiness >/dev/null
+echo "Healthy: nacos"
 check auth http://127.0.0.1:9200/actuator/health
 check system http://127.0.0.1:9201/actuator/health
 check gateway http://127.0.0.1:8080/actuator/health

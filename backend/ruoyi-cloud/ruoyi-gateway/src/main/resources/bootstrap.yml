@@ -45,7 +45,6 @@ spring:
     import:
       - nacos:application-${spring.profiles.active}.${spring.config.file-extension}
       - nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}
-      - nacos:care-gateway-routes-${spring.profiles.active}.properties?group=DEFAULT_GROUP
 
 platform:
   member-directory-url: ${RUOYI_MEMBER_DIRECTORY_URL:http://127.0.0.1:9201}
