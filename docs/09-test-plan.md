@@ -23,6 +23,8 @@
 
 业务客户端契约测试必须断言请求包含 `/care/api/v1` 前缀，防止绕过 Gateway 直接访问服务路径。新增基础资料、护理工作台、审计工作台和机构目录的真实 Gateway E2E 后，才可将对应模块标记为完成。
 
+认证契约测试必须覆盖 `GET /code` 的 `Accept: text/plain` 请求、登录请求中的 `username`、`password`、`code` 与 `uuid`，以及 `DELETE /auth/logout` 的 Bearer Token。端到端测试必须确认验证码登录成功后 `/care/api/v1/residents` 由 Gateway 去除 `/care` 前缀并到达护理服务；演示入口不得发出 Gateway 业务请求。
+
 - 单元：租户范围解析、床位可分配规则、任务状态机、告警状态机、导出脱敏、AI 输出过滤。
 - Java 单元：`care-service` 的租户上下文、长者状态、入住并发控制和护理任务状态机；`device-service` 的遥测标准化和告警状态机。
 - 集成：RuoYi 身份上下文、业务服务事务、RLS 策略、对象存储签名、AI 适配器模拟和错误重试。

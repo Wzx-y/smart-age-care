@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSessionStore } from "../../src/features/auth/session-store.js";
+import { createSessionStore, isGatewaySession } from "../../src/features/auth/session-store.js";
 
 test("会话仅保存在内存中且退出后清空", () => {
   const store = createSessionStore();
@@ -14,4 +14,10 @@ test("会话仅保存在内存中且退出后清空", () => {
 
   store.clear();
   assert.equal(store.get(), null);
+});
+
+test("演示会话不会启用 Gateway 业务请求", () => {
+  assert.equal(isGatewaySession({ mode: "demo" }), false);
+  assert.equal(isGatewaySession({ mode: "gateway" }), true);
+  assert.equal(isGatewaySession(null), false);
 });

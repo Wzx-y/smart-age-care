@@ -26,6 +26,7 @@ import {
   Pencil,
   Plus,
   Phone,
+  RefreshCw,
   Search,
   Settings2,
   ShieldCheck,
@@ -52,7 +53,7 @@ import { createSystemApi } from "./features/system/system-api.js";
 import { GatewayResidentWorkspace } from "./features/residents/GatewayResidentWorkspace.jsx";
 import { AuditWorkspace } from "./features/audit/AuditWorkspace.jsx";
 import { TenantCrudPanel } from "./features/system/TenantCrudPanel.jsx";
-import { createSessionStore } from "./features/auth/session-store.js";
+import { createSessionStore, isGatewaySession } from "./features/auth/session-store.js";
 import { runtimeConfig } from "./lib/runtime-config.js";
 
 const NAV_ITEMS = [
@@ -1107,25 +1108,39 @@ function AccountPanel({ type, onClose, onSave, onLogout }) {
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}><section className="modal account-panel" role="dialog" aria-modal="true" aria-labelledby="account-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-title"><div><span className="modal-icon">{isProfile ? <UserRound size={19} /> : isSystem ? <UserCog size={19} /> : <LogOut size={19} />}</span><div><h2 id="account-title">{isProfile ? "个人中心" : isSystem ? "系统管理" : "退出登录"}</h2><p>{isProfile ? "维护您的账号信息与通知方式" : isSystem ? "管理机构成员、角色与访问权限" : "确认结束当前原型会话"}</p></div></div><button type="button" className="icon-button" onClick={onClose} aria-label="关闭"><X size={18} /></button></div>{isProfile ? <form onSubmit={(event) => { event.preventDefault(); onSave(); }}><div className="account-identity"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80" alt="张院长" /><div><b>{profile.name}</b><span>{profile.role}</span><small>颐和苑养老中心</small></div></div><div className="record-fields"><label>姓名<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label><label>职务<input value={profile.role} onChange={(event) => setProfile({ ...profile, role: event.target.value })} /></label><label>联系电话<input value={profile.phone} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} /></label><label>邮箱地址<input value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} /></label></div><div className="account-note"><Mail size={16} /><span>每日运营摘要将发送至当前邮箱</span></div><div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>取消</button><button type="submit" className="button primary">保存资料</button></div></form> : isSystem ? <><div className="system-summary"><div><span>机构成员</span><strong>42</strong><small>含 18 名护理人员</small></div><div><span>启用角色</span><strong>5</strong><small>权限策略运行正常</small></div></div><div className="system-links"><button type="button" onClick={() => onSave("已打开成员管理示例") }><span><UserRound size={17} /><b>成员与角色</b><small>查看账号、角色及所属部门</small></span><ChevronRight size={18} /></button><button type="button" onClick={() => onSave("已打开访问权限示例") }><span><LockKeyhole size={17} /><b>访问权限</b><small>配置模块范围与数据访问级别</small></span><ChevronRight size={18} /></button></div><div className="modal-actions"><button type="button" className="button primary" onClick={onClose}>完成</button></div></> : <><div className="logout-message"><span><LogOut size={22} /></span><p>退出后将返回登录入口，当前页面内的示例数据会重置。</p></div><div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>取消</button><button type="button" className="button destructive" onClick={onLogout}>确认退出</button></div></>}</section></div>;
 }
 
-function AuthScreen({ onAuthenticated, notice }) {
+function AuthScreen({ authApi, gatewayEnabled, onAuthenticated, notice }) {
   const [mode, setMode] = useState("login");
   const [feedback, setFeedback] = useState(notice);
-  const [form, setForm] = useState({ account: "admin@yiheyuan.care", password: "123456", name: "", organization: "" });
+  const [form, setForm] = useState({ account: "", password: "", name: "", organization: "" });
+  const [captcha, setCaptcha] = useState({ enabled: false, img: "", uuid: "", code: "", loading: false });
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const refreshCaptcha = useCallback(async () => {
+    if (!gatewayEnabled || !authApi) return;
+    setCaptcha((current) => ({ ...current, loading: true }));
+    try {
+      const next = await authApi.getCaptcha();
+      setCaptcha({ enabled: Boolean(next.captchaEnabled), img: next.img || "", uuid: next.uuid || "", code: "", loading: false });
+    } catch (error) {
+      setCaptcha({ enabled: false, img: "", uuid: "", code: "", loading: false });
+      setFeedback(error.message || "验证码加载失败，请稍后重试。");
+    }
+  }, [authApi, gatewayEnabled]);
+  useEffect(() => { if (mode === "login") void refreshCaptcha(); }, [mode, refreshCaptcha]);
   const submit = async (event) => {
     event.preventDefault();
     if (mode === "login") {
       try {
-        await onAuthenticated({ account: form.account, password: form.password, demo: false });
+        await onAuthenticated({ account: form.account, password: form.password, code: captcha.code, uuid: captcha.uuid, demo: false });
       } catch (error) {
         setFeedback(error.message || "登录未完成，请稍后重试。");
+        void refreshCaptcha();
       }
     }
     if (mode === "register") { setFeedback("注册信息已提交，请使用您的账号登录。"); setMode("login"); }
     if (mode === "forgot") setFeedback("重置指引已发送至您的登录邮箱。");
   };
   const titles = { login: ["欢迎回来", "登录后继续管理机构照护工作"], register: ["创建机构账号", "开始搭建您的智慧养老工作空间"], forgot: ["找回登录密码", "输入账号，我们会发送重置指引"] };
-  return <main className="auth-page"><header className="auth-header"><a href="#login" className="brand"><span className="brand-mark"><HeartPulse size={20} /></span><span>智护云<span>Care</span></span></a><button type="button" className="auth-help" onClick={() => setFeedback("在线支持将在工作时间内响应您的问题。")}><Phone size={16} />联系支持</button></header><div className="auth-layout"><section className="auth-visual"><img src="https://images.unsplash.com/photo-1576765608866-5b51046452be?auto=format&fit=crop&w=1200&q=85" alt="护理人员陪伴长者" /><div className="auth-visual-copy"><span>SMART CARE, HUMAN TOUCH</span><h1>让每一次照护<br />都被安心看见</h1><p>服务于养老机构的协同照护与运营工作空间。</p><div><b>186</b><small>在院长长者 · 今日服务有序进行</small></div></div></section><section className="auth-form-side"><div className="auth-card"><div className="auth-card-head"><p className="eyebrow"><span />智慧养老 SaaS</p><h2>{titles[mode][0]}</h2><p>{titles[mode][1]}</p></div>{feedback && <div className="auth-feedback"><Check size={16} />{feedback}</div>}<form onSubmit={submit}>{mode === "register" && <><label>机构名称<input required value={form.organization} onChange={(event) => update("organization", event.target.value)} placeholder="例如：颐和苑养老中心" /></label><label>姓名<input required value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="请输入您的姓名" /></label></>}<label>{mode === "register" ? "登录邮箱或手机" : "账号"}<input required value={form.account} onChange={(event) => update("account", event.target.value)} placeholder="邮箱或手机号" /></label>{mode !== "forgot" && <label>密码<div className="password-field"><input required type="password" value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="请输入密码" /><LockKeyhole size={16} /></div></label>}{mode === "login" && <div className="auth-options"><label className="remember"><input type="checkbox" defaultChecked />记住登录状态</label><button type="button" onClick={() => { setFeedback(""); setMode("forgot"); }}>忘记密码？</button></div>}{mode === "register" && <label className="remember"><input required type="checkbox" />我已阅读并同意服务协议和隐私政策</label>}<button type="submit" className="auth-submit">{mode === "login" ? "登录工作台" : mode === "register" ? "创建账号" : "发送重置指引"}<ArrowRight size={17} /></button></form>{mode === "login" && <button type="button" className="demo-login" onClick={() => onAuthenticated({ demo: true })}><Sparkles size={16} />体验演示工作台</button>}<div className="auth-switch">{mode === "login" ? <>还没有机构账号？<button type="button" onClick={() => { setFeedback(""); setMode("register"); }}>立即注册</button></> : <>已有账号？<button type="button" onClick={() => { setFeedback(""); setMode("login"); }}>返回登录</button></>}</div></div></section></div></main>;
+  return <main className="auth-page"><header className="auth-header"><a href="#login" className="brand"><span className="brand-mark"><HeartPulse size={20} /></span><span>智护云<span>Care</span></span></a><button type="button" className="auth-help" onClick={() => setFeedback("在线支持将在工作时间内响应您的问题。")}><Phone size={16} />联系支持</button></header><div className="auth-layout"><section className="auth-visual"><img src="https://images.unsplash.com/photo-1576765608866-5b51046452be?auto=format&fit=crop&w=1200&q=85" alt="护理人员陪伴长者" /><div className="auth-visual-copy"><span>SMART CARE, HUMAN TOUCH</span><h1>让每一次照护<br />都被安心看见</h1><p>服务于养老机构的协同照护与运营工作空间。</p><div><b>186</b><small>在院长长者 · 今日服务有序进行</small></div></div></section><section className="auth-form-side"><div className="auth-card"><div className="auth-card-head"><p className="eyebrow"><span />智慧养老 SaaS</p><h2>{titles[mode][0]}</h2><p>{titles[mode][1]}</p></div>{feedback && <div className="auth-feedback"><Check size={16} />{feedback}</div>}<form onSubmit={submit}>{mode === "register" && <><label>机构名称<input required value={form.organization} onChange={(event) => update("organization", event.target.value)} placeholder="例如：颐和苑养老中心" /></label><label>姓名<input required value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="请输入您的姓名" /></label></>}<label>{mode === "register" ? "登录邮箱或手机" : "账号"}<input required value={form.account} onChange={(event) => update("account", event.target.value)} placeholder={mode === "login" ? "请输入用户名" : "邮箱或手机号"} /></label>{mode !== "forgot" && <label>密码<div className="password-field"><input required type="password" value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="请输入密码" /><LockKeyhole size={16} /></div></label>}{mode === "login" && captcha.enabled && <label>验证码<div className="captcha-field"><input required value={captcha.code} onChange={(event) => setCaptcha((current) => ({ ...current, code: event.target.value }))} placeholder="请输入图中结果" /><img src={`data:image/jpeg;base64,${captcha.img}`} alt="验证码" /><button type="button" className="icon-button" title="刷新验证码" aria-label="刷新验证码" onClick={() => void refreshCaptcha()} disabled={captcha.loading}><RefreshCw size={16} /></button></div></label>}{mode === "login" && <div className="auth-options"><label className="remember"><input type="checkbox" defaultChecked />记住登录状态</label><button type="button" onClick={() => { setFeedback(""); setMode("forgot"); }}>忘记密码？</button></div>}{mode === "register" && <label className="remember"><input required type="checkbox" />我已阅读并同意服务协议和隐私政策</label>}<button type="submit" className="auth-submit" disabled={mode === "login" && captcha.loading}>{mode === "login" ? "登录工作台" : mode === "register" ? "创建账号" : "发送重置指引"}<ArrowRight size={17} /></button></form>{mode === "login" && <button type="button" className="demo-login" onClick={() => onAuthenticated({ demo: true })}><Sparkles size={16} />体验演示工作台</button>}<div className="auth-switch">{mode === "login" ? <>还没有机构账号？<button type="button" onClick={() => { setFeedback(""); setMode("register"); }}>立即注册</button></> : <>已有账号？<button type="button" onClick={() => { setFeedback(""); setMode("login"); }}>返回登录</button></>}</div></div></section></div></main>;
 }
 
 export function App() {
@@ -1146,7 +1161,7 @@ export function App() {
   const [tenantOptions, setTenantOptions] = useState(TENANTS);
   const [showTenantMenu, setShowTenantMenu] = useState(false);
   const [authNotice, setAuthNotice] = useState("");
-  const [authState, setAuthState] = useState({ status: "anonymous", profile: null });
+  const [authState, setAuthState] = useState({ status: "anonymous", mode: null, profile: null });
   const accessTokenRef = useRef("");
   const tenantIdRef = useRef(TENANTS[0].id);
   const sessionStoreRef = useRef(createSessionStore());
@@ -1154,41 +1169,42 @@ export function App() {
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
   }) : null, []);
-  const admissionApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createAdmissionApi({
+  const gatewaySessionActive = isGatewaySession(authState);
+  const admissionApi = useMemo(() => gatewaySessionActive ? createAdmissionApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const careApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createCareApi({
+  }) : null, [gatewaySessionActive]);
+  const careApi = useMemo(() => gatewaySessionActive ? createCareApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const residentApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createResidentApi({
+  }) : null, [gatewaySessionActive]);
+  const residentApi = useMemo(() => gatewaySessionActive ? createResidentApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const systemApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createSystemApi({
+  }) : null, [gatewaySessionActive]);
+  const systemApi = useMemo(() => gatewaySessionActive ? createSystemApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const exportApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createExportApi({
+  }) : null, [gatewaySessionActive]);
+  const exportApi = useMemo(() => gatewaySessionActive ? createExportApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const masterDataApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createMasterDataApi({
+  }) : null, [gatewaySessionActive]);
+  const masterDataApi = useMemo(() => gatewaySessionActive ? createMasterDataApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
-  const notificationApi = useMemo(() => runtimeConfig.authMode === "gateway" ? createNotificationApi({
+  }) : null, [gatewaySessionActive]);
+  const notificationApi = useMemo(() => gatewaySessionActive ? createNotificationApi({
     gatewayUrl: runtimeConfig.gatewayUrl,
     getAccessToken: () => accessTokenRef.current,
     getRequestHeaders: () => ({ "X-Tenant-Id": tenantIdRef.current }),
-  }) : null, []);
+  }) : null, [gatewaySessionActive]);
   const isAuthenticated = authState.status === "authenticated";
 
   const filteredTasks = useMemo(
@@ -1209,20 +1225,20 @@ export function App() {
     region: source.region || TENANTS[0].region,
   });
 
-  const authenticate = async ({ account, password, demo }) => {
+  const authenticate = async ({ account, password, code, uuid, demo }) => {
     if (demo || runtimeConfig.authMode === "demo") {
       const session = sessionStoreRef.current.set({ mode: "demo", profile: { name: "张院长" }, tenant: TENANTS[0] });
       tenantIdRef.current = TENANTS[0].id;
       setTenant(TENANTS[0]);
       setTenantOptions(TENANTS);
-      setAuthState({ status: "authenticated", profile: session.profile });
+      setAuthState({ status: "authenticated", mode: "demo", profile: session.profile });
       setAuthNotice("");
       return;
     }
 
-    setAuthState({ status: "checking", profile: null });
+    setAuthState({ status: "checking", mode: null, profile: null });
     try {
-      const credentials = await authApi.login({ account, password });
+      const credentials = await authApi.login({ username: account, password, code, uuid });
       const accessToken = credentials.accessToken || credentials.token;
       if (!accessToken) throw new Error("认证服务未返回访问令牌");
       accessTokenRef.current = accessToken;
@@ -1234,12 +1250,12 @@ export function App() {
       tenantIdRef.current = currentTenant.id;
       setTenant(toUiTenant(currentTenant));
       setTenantOptions(availableTenants.map(toUiTenant));
-      setAuthState({ status: "authenticated", profile: session.profile });
+      setAuthState({ status: "authenticated", mode: "gateway", profile: session.profile });
       setAuthNotice("");
     } catch (error) {
       accessTokenRef.current = "";
       sessionStoreRef.current.clear();
-      setAuthState({ status: "anonymous", profile: null });
+      setAuthState({ status: "anonymous", mode: null, profile: null });
       throw error;
     }
   };
@@ -1250,7 +1266,7 @@ export function App() {
       return;
     }
     try {
-      if (runtimeConfig.authMode === "gateway") {
+      if (gatewaySessionActive) {
         const result = await authApi.switchTenant(nextTenant.id);
         if (result.accessToken || result.token) accessTokenRef.current = result.accessToken || result.token;
       }
@@ -1263,7 +1279,7 @@ export function App() {
   };
 
   const refreshTenantDirectory = async () => {
-    if (runtimeConfig.authMode !== "gateway" || !authApi) return;
+    if (!gatewaySessionActive || !authApi) return;
     const nextTenants = await authApi.listTenants();
     const mapped = nextTenants.map(toUiTenant);
     setTenantOptions(mapped);
@@ -1272,13 +1288,19 @@ export function App() {
     }
   };
 
-  const signOut = () => {
-    accessTokenRef.current = "";
-    sessionStoreRef.current.clear();
-    setAccountPanel(null);
-    setTenantOptions(TENANTS);
-    setAuthNotice("您已退出当前账户。");
-    setAuthState({ status: "anonymous", profile: null });
+  const signOut = async () => {
+    try {
+      if (gatewaySessionActive && accessTokenRef.current) await authApi.logout();
+    } catch {
+      // The local session must still be cleared when the server is unavailable.
+    } finally {
+      accessTokenRef.current = "";
+      sessionStoreRef.current.clear();
+      setAccountPanel(null);
+      setTenantOptions(TENANTS);
+      setAuthNotice("您已退出当前账户。");
+      setAuthState({ status: "anonymous", mode: null, profile: null });
+    }
   };
 
   const selectNav = (id) => {
@@ -1348,7 +1370,7 @@ export function App() {
     announce(message);
   };
 
-  if (!isAuthenticated) return <AuthScreen notice={authNotice} onAuthenticated={authenticate} />;
+  if (!isAuthenticated) return <AuthScreen authApi={authApi} gatewayEnabled={runtimeConfig.authMode === "gateway"} notice={authNotice} onAuthenticated={authenticate} />;
 
   return (
     <div className="app-shell">

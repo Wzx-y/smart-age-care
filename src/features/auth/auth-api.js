@@ -8,10 +8,16 @@ export function createAuthApi({ gatewayUrl, getAccessToken, fetchImpl }) {
   });
 
   return {
-    login({ account, password }) {
+    getCaptcha() {
+      return client.request("/code", {
+        headers: { Accept: "text/plain" },
+        responseType: "envelope",
+      });
+    },
+    login({ username, password, code, uuid }) {
       return client.request("/auth/login", {
         method: "POST",
-        body: { account, password },
+        body: { username, password, code, uuid },
       });
     },
     refresh(refreshToken) {
@@ -19,6 +25,9 @@ export function createAuthApi({ gatewayUrl, getAccessToken, fetchImpl }) {
         method: "POST",
         body: { refreshToken },
       });
+    },
+    logout() {
+      return client.request("/auth/logout", { method: "DELETE" });
     },
     getCurrentUser() {
       return client.request("/system/user/getInfo");

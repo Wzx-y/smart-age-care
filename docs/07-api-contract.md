@@ -41,7 +41,7 @@ React 运营报表工作台仅在 Gateway 模式调用上述接口，并以当�
 
 业务接口经 RuoYi Gateway 以 `/api/v1` 暴露，系统管理接口使用 RuoYi 原生 `/system` 路径；两者都使用 Bearer Token。业务响应包含 `code`、`message`、`data`、`traceId`；RuoYi 系统响应使用 `code`、`msg`、`data`，列表返回 `rows` 与 `total`。服务端从令牌和可信 Gateway 上下文确定租户，客户端不得在请求体传入可覆盖租户的字段。
 
-认证接口位于 Gateway 的 `/auth` 前缀：`POST /auth/login` 接收 `account` 与 `password`，`POST /auth/refresh` 接收刷新令牌。登录响应只返回由 Gateway 签发的会话数据；租户在 `GET /api/v1/me` 和 `GET /api/v1/tenants` 中获取，不能由登录请求指定。
+认证接口位于 Gateway 的 `/auth` 前缀。前端先以 `Accept: text/plain` 请求 `GET /code`，响应中的 `captchaEnabled` 为 `true` 时展示 Base64 验证码图片并保存 `uuid`；随后 `POST /auth/login` 提交 `username`、`password`、`code` 与 `uuid`。登录响应只返回由 Gateway 签发的会话数据；租户在后续系统接口中获取，不能由登录请求指定。`DELETE /auth/logout` 必须携带当前 Bearer Token 后使当前会话失效。
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |

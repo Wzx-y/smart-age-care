@@ -84,6 +84,6 @@ stage_jar backend/ruoyi-cloud/ruoyi-modules/ruoyi-system/target/ruoyi-modules-sy
 care_jar="$(find backend/care-service/target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' -print -quit)"
 stage_jar "$care_jar" .codespaces/runtime/care-service.jar
 
-"${compose[@]}" up -d ruoyi-auth ruoyi-system ruoyi-gateway care-service frontend
+"${compose[@]}" up -d --force-recreate ruoyi-auth ruoyi-system ruoyi-gateway care-service frontend
 printf '\nStack started. In the Codespaces Ports panel, open port 5173.\n'
 printf 'Follow startup logs with: docker compose --env-file .env.codespaces -f docker-compose.codespaces.yml logs -f\n'

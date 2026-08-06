@@ -63,6 +63,7 @@ test("Codespaces 启动脚本等待 MySQL 根密码认证完成后再导入 SQL"
   assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" smart_age_care < /);
   assert.match(script, /mysql -uroot -p"\$MYSQL_ROOT_PASSWORD" ry-config < /);
   assert.match(script, /up -d --force-recreate nacos/);
+  assert.match(script, /up -d --force-recreate ruoyi-auth ruoyi-system ruoyi-gateway care-service frontend/);
   assert.match(script, /TABLE_SCHEMA = 'smart_age_care' AND TABLE_NAME = 'care_tenant_directory'/);
   assert.match(gatewayRouteSql, /update config_info/);
   assert.match(gatewayRouteSql, /- id: care-service/);
