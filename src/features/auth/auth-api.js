@@ -15,9 +15,12 @@ export function createAuthApi({ gatewayUrl, getAccessToken, fetchImpl }) {
       });
     },
     login({ username, password, code, uuid }) {
+      const body = { username, password };
+      if (code) body.code = code;
+      if (uuid) body.uuid = uuid;
       return client.request("/auth/login", {
         method: "POST",
-        body: { username, password, code, uuid },
+        body,
       });
     },
     refresh(refreshToken) {

@@ -198,3 +198,6 @@ React 运营报表工作台仅在 Gateway 模式调用上述接口，并以当�
 ## Gateway 路由前缀
 
 所有养老业务服务接口通过 Gateway 的 `/care/**` 路由暴露。浏览器请求路径为 `/care/api/v1/**`，Gateway 去除首段 `/care` 后转发至 `care-service` 的 `/api/v1/**`。认证、RuoYi System 和成员目录仍分别使用 `/auth/**`、`/system/**`。
+## Login captcha policy
+
+The Codespaces SaaS login uses account and password only. The frontend does not call `GET /code` and does not send `code` or `uuid` to `POST /auth/login`. The Codespaces bootstrap script sets `security.captcha.enabled` to `false` in the Gateway Nacos configuration, including existing database volumes.

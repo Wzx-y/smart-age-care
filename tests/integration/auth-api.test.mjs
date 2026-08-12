@@ -47,3 +47,18 @@ test("认证 API 使用 Gateway 会话令牌退出", async () => {
   assert.equal(request.options.method, "DELETE");
   assert.equal(request.options.headers.Authorization, "Bearer access");
 });
+
+test("账号密码登录不发送验证码字段", async () => {
+  let request;
+  const authApi = createAuthApi({
+    gatewayUrl: "https://gateway.example.com",
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return { ok: true, json: async () => ({ code: 0, data: { accessToken: "access" } }) };
+    },
+  });
+
+  await authApi.login({ username: "admin", password: "admin123" });
+  assert.equal(request.url, "https://gateway.example.com/auth/login");
+  assert.equal(request.options.body, '{"username":"admin","password":"admin123"}');
+});

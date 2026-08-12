@@ -1112,28 +1112,16 @@ function AuthScreen({ authApi, gatewayEnabled, onAuthenticated, notice }) {
   const [mode, setMode] = useState("login");
   const [feedback, setFeedback] = useState(notice);
   const [form, setForm] = useState({ account: "", password: "", name: "", organization: "" });
-  const [captcha, setCaptcha] = useState({ enabled: false, img: "", uuid: "", code: "", loading: false });
+  const [captcha] = useState({ enabled: false, img: "", uuid: "", code: "", loading: false });
+  const refreshCaptcha = useCallback(() => {}, []);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const refreshCaptcha = useCallback(async () => {
-    if (!gatewayEnabled || !authApi) return;
-    setCaptcha((current) => ({ ...current, loading: true }));
-    try {
-      const next = await authApi.getCaptcha();
-      setCaptcha({ enabled: Boolean(next.captchaEnabled), img: next.img || "", uuid: next.uuid || "", code: "", loading: false });
-    } catch (error) {
-      setCaptcha({ enabled: false, img: "", uuid: "", code: "", loading: false });
-      setFeedback(error.message || "验证码加载失败，请稍后重试。");
-    }
-  }, [authApi, gatewayEnabled]);
-  useEffect(() => { if (mode === "login") void refreshCaptcha(); }, [mode, refreshCaptcha]);
   const submit = async (event) => {
     event.preventDefault();
     if (mode === "login") {
       try {
-        await onAuthenticated({ account: form.account, password: form.password, code: captcha.code, uuid: captcha.uuid, demo: false });
+        await onAuthenticated({ account: form.account, password: form.password, demo: false });
       } catch (error) {
         setFeedback(error.message || "登录未完成，请稍后重试。");
-        void refreshCaptcha();
       }
     }
     if (mode === "register") { setFeedback("注册信息已提交，请使用您的账号登录。"); setMode("login"); }
@@ -1225,7 +1213,7 @@ export function App() {
     region: source.region || TENANTS[0].region,
   });
 
-  const authenticate = async ({ account, password, code, uuid, demo }) => {
+  const authenticate = async ({ account, password, demo }) => {
     if (demo || runtimeConfig.authMode === "demo") {
       const session = sessionStoreRef.current.set({ mode: "demo", profile: { name: "张院长" }, tenant: TENANTS[0] });
       tenantIdRef.current = TENANTS[0].id;
@@ -1238,7 +1226,7 @@ export function App() {
 
     setAuthState({ status: "checking", mode: null, profile: null });
     try {
-      const credentials = await authApi.login({ username: account, password, code, uuid });
+      const credentials = await authApi.login({ username: account, password });
       const accessToken = credentials.accessToken || credentials.token;
       if (!accessToken) throw new Error("认证服务未返回访问令牌");
       accessTokenRef.current = accessToken;

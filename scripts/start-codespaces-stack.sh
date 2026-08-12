@@ -59,6 +59,10 @@ sync_gateway_routes() {
   "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ry-config < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/002_gateway_care_route.sql"
 }
 
+disable_gateway_captcha() {
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "UPDATE \`ry-config\`.config_info SET content = REPLACE(content, CONCAT('captcha:', CHAR(10), '    enabled: true'), CONCAT('captcha:', CHAR(10), '    enabled: false')) WHERE data_id = 'ruoyi-gateway-dev.yml' AND content LIKE '%captcha:%';"
+}
+
 stage_jar() {
   local source="$1"
   local target="$2"
@@ -71,6 +75,7 @@ cd "$workspace_root"
 wait_for_mysql
 seed_databases
 sync_gateway_routes
+disable_gateway_captcha
 "${compose[@]}" up -d --force-recreate nacos
 
 printf 'Building cloud services in Codespaces...\n'
