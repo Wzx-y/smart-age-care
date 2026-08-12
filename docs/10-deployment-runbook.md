@@ -22,7 +22,7 @@
 
 1. 执行 **Codespaces: Rebuild Container**，使 Docker-in-Docker 生效。
 2. 从 `.env.codespaces.example` 创建被忽略的 `.env.codespaces`，只在 Codespaces Secrets 或该本地文件中提供数据库、Nacos、JWT 和内部服务密钥。
-3. 运行 `bash scripts/start-codespaces-stack.sh`。首次运行会将跟踪的 SQL 分别导入 `ry-config`、`ry-cloud` 和 `smart_age_care`，并由 `care-service` 执行 Flyway；脚本会等待 MySQL 根密码认证查询成功后再导入。Nacos 的 MySQL 8 JDBC 参数已允许认证公钥检索，仅用于未暴露端口的 Codespaces 容器网络；其健康检查使用 Nacos 3 Console 的 `8080/actuator/health`，而不是已返回 410 的旧就绪路径。只有在护理租户目录表已存在时才认为导入完成，因此首次失败后的再次运行会自动重新初始化，不需要手动删除卷。
+3. 运行 `bash scripts/start-codespaces-stack.sh`。首次运行会将跟踪的 SQL 分别导入 `ry-config`、`ry-cloud` 和 `smart_age_care`，并由 `care-service` 执行 Flyway；脚本会等待 MySQL 根密码认证查询成功后再导入。每次启动均会幂等更新 Nacos 中既有 Gateway 路由配置，重建 Nacos，并强制重建 Auth、System、Gateway、护理服务和前端容器，避免已有进程继续使用旧的路由或 JAR。Nacos 的 MySQL 8 JDBC 参数已允许认证公钥检索，仅用于未暴露端口的 Codespaces 容器网络；其健康检查使用 Nacos 3 Console 的 `8080/v3/console/health/readiness`，而不是会返回 410 的 `/actuator/health`。只有在护理租户目录表已存在时才认为导入完成，因此首次失败后的再次运行会自动重新初始化，不需要手动删除卷。
 4. 在 Ports 面板打开 `5173`，并用 `docker compose --env-file .env.codespaces -f docker-compose.codespaces.yml logs -f` 查看日志。
 
 不要与 `scripts/codespaces/infra-up.sh` 和 `scripts/codespaces/start-services.sh` 同时使用；两条入口会争用同一 Codespace 的服务端口和数据库资源。

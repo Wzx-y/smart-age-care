@@ -43,7 +43,7 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health >/dev/null"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/v3/console/health/readiness >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 30

@@ -1,3 +1,7 @@
+export function isGatewaySession(session) {
+  return session?.mode === "gateway";
+}
+
 export function createSessionStore() {
   let session = null;
 

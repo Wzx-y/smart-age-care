@@ -23,6 +23,8 @@
 
 业务客户端契约测试必须断言请求包含 `/care/api/v1` 前缀，防止绕过 Gateway 直接访问服务路径。新增基础资料、护理工作台、审计工作台和机构目录的真实 Gateway E2E 后，才可将对应模块标记为完成。
 
+认证契约测试必须覆盖 `GET /code` 的 `Accept: text/plain` 请求、登录请求中的 `username`、`password`、`code` 与 `uuid`，以及 `DELETE /auth/logout` 的 Bearer Token。端到端测试必须确认验证码登录成功后 `/care/api/v1/residents` 由 Gateway 去除 `/care` 前缀并到达护理服务；演示入口不得发出 Gateway 业务请求。
+
 - 单元：租户范围解析、床位可分配规则、任务状态机、告警状态机、导出脱敏、AI 输出过滤。
 - Java 单元：`care-service` 的租户上下文、长者状态、入住并发控制和护理任务状态机；`device-service` 的遥测标准化和告警状态机。
 - 集成：RuoYi 身份上下文、业务服务事务、RLS 策略、对象存储签名、AI 适配器模拟和错误重试。
@@ -37,7 +39,7 @@ AI 测试使用固定模拟响应，不调用真实模型或付费密钥。PR �
 
 `care-service` 与 RuoYi Cloud 均已有 Maven 测试源码，GitHub CI 分别执行 `backend/pom.xml` 和 `backend/ruoyi-cloud/pom.xml` 的 Java 21 `mvn verify` 作业；尚未在云端执行。TypeScript、后端集成和 Playwright 测试套件仍未完成，不得把该状态描述为已通过。
 
-`tests/integration/codespaces-stack.test.mjs` 对全容器化 Codespaces 编排做静态检查：必须包含 MySQL、Redis、Nacos、RuoYi Auth/System/Gateway、`care-service` 与前端服务；密钥只允许来自被忽略的 `.env.codespaces`；启动脚本必须以已认证的 MySQL 查询作为初始化门槛，不能只依赖 `mysqladmin ping`，并将 RuoYi、护理和 Gateway SQL 导入明确指定到各自数据库；Nacos 的 MySQL JDBC 参数必须支持 MySQL 8 认证公钥检索，健康检查必须使用 Nacos 3 Console 的 `8080/actuator/health`；Gateway 路由记录的值数量必须与当前 Nacos `config_info` 字段清单对应；浏览器请求通过 `/gateway` 代理。该测试不替代 Codespaces 实际启动、登录或端到端证据。
+`tests/integration/codespaces-stack.test.mjs` 对全容器化 Codespaces 编排做静态检查：必须包含 MySQL、Redis、Nacos、RuoYi Auth/System/Gateway、`care-service` 与前端服务；密钥只允许来自被忽略的 `.env.codespaces`；启动脚本必须以已认证的 MySQL 查询作为初始化门槛，不能只依赖 `mysqladmin ping`，并将 RuoYi、护理和 Gateway SQL 导入明确指定到各自数据库；两条 Codespaces 入口与验证脚本均须使用 Nacos 3 Console 的 `8080/v3/console/health/readiness` 就绪接口，且自定义 Nacos 安全白名单必须允许该只读健康路径；Gateway 路由记录的值数量必须与当前 Nacos `config_info` 字段清单对应；浏览器请求通过 `/gateway` 代理。该测试不替代 Codespaces 实际启动、登录或端到端证据。
 
 `care-service` 的单元测试直接声明 `mockito-core` 测试依赖，确保 GitHub Actions 的测试编译类路径包含测试替身 API；Mockito 参数匹配器统一使用 `org.mockito.ArgumentMatchers`，避免将包名误作为可调用类型；该依赖由 Spring Boot BOM 管理版本。
 

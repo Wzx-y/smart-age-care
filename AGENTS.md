@@ -23,6 +23,7 @@ When implementing from a selected generated mock, treat that image as the source
 - The assistant may show user-facing retrieval and answer-assembly states plus a typewriter response, but it must never expose private model reasoning. Device Center defaults to an equipment overview with asset, status, use, inspection, and maintenance context; alert handling is a distinct subordinate view rather than the landing view.
 - After a user sends an assistant message, the current thinking state and newest answer must remain automatically visible without manual scrolling; preserve a spacious conversation area once chat history exists.
 - Business closure takes precedence over server-side AI integration. Until the core resident, admission, care, organization, reporting, notification, and audit workflows are complete, the assistant may continue using constrained preset answers without blocking those workflows.
+- Codespaces login uses account and password only; captcha is disabled in both the React login flow and the Gateway Nacos configuration.
 
 ## Cloud-First Engineering Rules
 
