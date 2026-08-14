@@ -59,6 +59,25 @@ sync_gateway_routes() {
   "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ry-config < "$workspace_root/backend/ruoyi-cloud/sql/smart-age-care/002_gateway_care_route.sql"
 }
 
+disable_gateway_captcha() {
+  "${compose[@]}" exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
+    UPDATE \`ry-config\`.config_info
+    SET content = REGEXP_REPLACE(
+      content,
+      'captcha:[[:space:]]+enabled:[[:space:]]*true',
+      CONCAT('captcha:', CHAR(10), '    enabled: false')
+    )
+    WHERE data_id = 'ruoyi-gateway-dev.yml'
+      AND group_id = 'DEFAULT_GROUP'
+      AND REGEXP_LIKE(content, 'captcha:[[:space:]]+enabled:[[:space:]]*true');
+
+    UPDATE \`ry-config\`.config_info
+    SET md5 = MD5(content), gmt_modified = CURRENT_TIMESTAMP
+    WHERE data_id = 'ruoyi-gateway-dev.yml'
+      AND group_id = 'DEFAULT_GROUP';
+  "
+}
+
 stage_jar() {
   local source="$1"
   local target="$2"
@@ -71,6 +90,7 @@ cd "$workspace_root"
 wait_for_mysql
 seed_databases
 sync_gateway_routes
+disable_gateway_captcha
 "${compose[@]}" up -d --force-recreate nacos
 
 printf 'Building cloud services in Codespaces...\n'
@@ -84,6 +104,6 @@ stage_jar backend/ruoyi-cloud/ruoyi-modules/ruoyi-system/target/ruoyi-modules-sy
 care_jar="$(find backend/care-service/target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' -print -quit)"
 stage_jar "$care_jar" .codespaces/runtime/care-service.jar
 
-"${compose[@]}" up -d ruoyi-auth ruoyi-system ruoyi-gateway care-service frontend
+"${compose[@]}" up -d --force-recreate ruoyi-auth ruoyi-system ruoyi-gateway care-service frontend
 printf '\nStack started. In the Codespaces Ports panel, open port 5173.\n'
 printf 'Follow startup logs with: docker compose --env-file .env.codespaces -f docker-compose.codespaces.yml logs -f\n'
