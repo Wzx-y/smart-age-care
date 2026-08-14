@@ -43,7 +43,7 @@ Create RuoYi menu permissions for the care codes before assigning roles, includi
 
 1. Start real MySQL 8, Redis, and Nacos 3 in Codespaces or GitHub Actions.
 2. Import RuoYi SQL from `backend/ruoyi-cloud/sql/`, then run `001_tenant_member_directory.sql` and `003_tenant_directory.sql`.
-3. Load `002_gateway_care_route.sql` into the Nacos config database. It creates the required `care-gateway-routes-dev.properties` record; Gateway bootstrap imports it as a required configuration source.
+3. Load `002_gateway_care_route.sql` into the Nacos config database. It idempotently adds the `/care/**` route to the existing `ruoyi-gateway-dev.yml` route list. Gateway does not import a second sparse route configuration source, because Spring cannot merge a `routes[5]` entry from one Nacos source with `routes[0..4]` from another.
 4. Configure `NACOS_SERVER_ADDR`, `NACOS_USERNAME`, `NACOS_PASSWORD`, `CARE_DB_URL`, `CARE_DB_USERNAME`, `CARE_DB_PASSWORD`, `RUOYI_MEMBER_DIRECTORY_URL`, and `PLATFORM_INTERNAL_AUTH_KEY` only as cloud secrets or runtime variables. Auth, System and Gateway bootstrap files resolve the Nacos address and credentials from those variables instead of assuming a local Nacos instance.
 5. Build RuoYi Cloud and the aged-care backend separately, start `ruoyi-system`, `ruoyi-auth`, `ruoyi-gateway`, and `care-service`, then run Flyway V1-V19 against the care database.
 6. Verify login, tenant directory CRUD and switching, role denial, directory outage `503`, cross-tenant isolation, resident 360, admission state transitions, care execution, master-data uniqueness/status controls, report aggregation, authorized export download, notification read state and audit retention.
